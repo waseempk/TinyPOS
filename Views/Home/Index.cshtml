@@ -1,0 +1,275 @@
+@model IEnumerable<TinyPOSApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Terminal";
+}
+
+<div class="grid grid-cols-10 h-full overflow-hidden">
+    <!-- Left Pane: Product List (65%) -->
+    <section class="col-span-6 border-r border-outline-variant bg-surface flex flex-col h-full overflow-hidden">
+        <!-- Search Bar Area -->
+        <div class="p-4 border-b border-outline-variant bg-white flex items-center gap-4">
+            <div class="relative flex-grow">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+                <input id="searchInput" oninput="filterProducts()" class="w-full pl-10 pr-4 py-3 bg-background border border-outline focus:border-secondary focus:ring-0 font-mono text-sm uppercase" placeholder="SEARCH SKU / PRODUCT NAME [CTRL+F]" type="text"/>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-2 bg-secondary-container border border-secondary text-on-secondary-container">
+                <div class="w-2 h-2 bg-secondary animate-pulse"></div>
+                <span class="font-mono text-xs font-bold">SCAN READY</span>
+            </div>
+        </div>
+
+        <!-- Vertical Product List -->
+        <div class="flex-grow overflow-y-auto bg-background">
+            <div class="flex flex-col divide-y divide-outline-variant">
+                @foreach (var p in Model)
+                {
+                    <button onclick="addToCart('@p.Id', '@p.Sku', '@p.Name', @p.SalePrice)" class="product-item flex items-center gap-4 p-3 bg-white hover:bg-surface-container-low transition-colors text-left group">
+                        <div class="w-16 h-16 bg-slate-100 border border-outline-variant flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            @if (!string.IsNullOrEmpty(p.ImageUrl))
+                            {
+                                <img alt="@p.Name" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" src="@p.ImageUrl" onerror="this.onerror=null; this.outerHTML='<span class=\'material-symbols-outlined text-outline-variant text-3xl\'>package_2</span>';"/>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-outline-variant text-3xl">package_2</span>
+                            }
+                        </div>
+                        <div class="flex-grow">
+                            <div class="font-mono text-[10px] text-outline">@p.Sku</div>
+                            <div class="font-label text-sm font-bold uppercase text-on-surface">@p.Name</div>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <div class="font-mono text-lg font-bold">$@p.SalePrice.ToString("0.00")</div>
+                            <span class="material-symbols-outlined text-outline-variant text-xl">add_shopping_cart</span>
+                        </div>
+                    </button>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Right Pane: Ticket (35%) -->
+    <section class="col-span-4 bg-white flex flex-col h-full overflow-hidden relative">
+        <div id="loadingOverlay" class="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+            <span class="material-symbols-outlined text-4xl animate-spin text-primary">sync</span>
+            <span class="font-mono text-xs uppercase font-bold mt-2 text-primary">Processing...</span>
+        </div>
+
+        <!-- Ticket Header -->
+        <div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-end">
+            <div>
+                <h2 class="font-label text-xs font-bold uppercase tracking-tighter text-outline">Active Transaction</h2>
+                <p class="font-mono text-lg font-bold" id="orderId">#NEW</p>
+            </div>
+            <div class="text-right">
+                <span class="font-mono text-[10px] text-outline block uppercase">Item Count</span>
+                <span class="font-mono text-lg font-bold" id="itemCount">0</span>
+            </div>
+        </div>
+
+        <!-- Dense List Items -->
+        <div class="flex-grow overflow-y-auto">
+            <table class="w-full font-mono text-xs border-collapse">
+                <thead class="sticky top-0 bg-white border-b border-outline-variant z-10 w-full">
+                    <tr class="text-left text-outline uppercase text-[10px]">
+                        <th class="p-2 font-normal w-12">Qty</th>
+                        <th class="p-2 font-normal">Description</th>
+                        <th class="p-2 font-normal text-right w-16">Unit</th>
+                        <th class="p-2 font-normal text-right w-16">Total</th>
+                        <th class="p-2 font-normal text-right w-8"></th>
+                    </tr>
+                </thead>
+                <tbody id="cartBody" class="divide-y divide-outline-variant/10">
+                    <!-- Dynamic cart items -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals, Cash Input & Actions -->
+        <div class="p-4 border-t-2 border-slate-900 bg-white">
+            <div class="space-y-1 mb-4">
+                <div class="flex justify-between font-mono text-sm">
+                    <span class="text-outline uppercase">Subtotal</span>
+                    <span id="subtotalLabel">0.00</span>
+                </div>
+                <!-- Tax omitted per user setting -->
+                <div class="flex justify-between font-mono text-2xl font-bold border-t border-dashed border-outline-variant pt-2 mt-2">
+                    <span class="uppercase">Total USD</span>
+                    <span id="totalLabel">0.00</span>
+                </div>
+            </div>
+
+            <!-- Payment Handling Fields -->
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <div class="flex flex-col">
+                    <label class="font-mono text-[10px] uppercase text-outline mb-1">Cash Received</label>
+                    <div class="relative">
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 font-mono text-sm text-outline">$</span>
+                        <input id="cashInput" class="w-full pl-6 pr-2 py-2 bg-slate-50 border border-outline-variant font-mono text-lg focus:border-secondary focus:ring-0" type="number" step="0.01" value="0.00" onkeyup="updateChange()"/>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <label class="font-mono text-[10px] uppercase text-outline mb-1">Change Due</label>
+                    <div class="w-full px-2 py-2 bg-slate-900 border border-slate-900 font-mono text-lg font-bold text-emerald-500 flex items-center justify-between">
+                        <span>$</span>
+                        <span id="changeLabel">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="voidTicket()" class="py-4 border border-outline font-label font-bold uppercase text-xs hover:bg-surface-container-highest transition-colors">
+                    Void Ticket [F4]
+                </button>
+                <button class="py-4 border border-outline font-label font-bold uppercase text-xs hover:bg-surface-container-highest transition-colors cursor-not-allowed text-outline">
+                    Hold [F6]
+                </button>
+                <button onclick="checkout()" class="col-span-2 py-6 bg-secondary text-on-secondary font-label font-bold text-xl uppercase flex items-center justify-center gap-3 hover:bg-on-secondary-container transition-colors disabled:opacity-50">
+                    <span class="material-symbols-outlined text-3xl">payments</span>
+                    Pay [F9]
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        let cart = [];
+        let total = 0;
+
+        function filterProducts() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const items = document.querySelectorAll('.product-item');
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (text.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function addToCart(id, sku, name, price) {
+            let item = cart.find(i => i.id === id);
+            if (item) {
+                item.qty++;
+            } else {
+                cart.push({ id, sku, name, price, qty: 1 });
+            }
+            renderCart();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            renderCart();
+        }
+
+        function voidTicket() {
+            cart = [];
+            document.getElementById('cashInput').value = '0.00';
+            renderCart();
+        }
+
+        function updateChange() {
+            const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+            const change = Math.max(0, cash - total);
+            document.getElementById('changeLabel').innerText = change.toFixed(2);
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('cartBody');
+            tbody.innerHTML = '';
+            
+            let itemsCount = 0;
+            total = 0;
+
+            cart.forEach(item => {
+                const sub = item.qty * item.price;
+                total += sub;
+                itemsCount += item.qty;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-bold">${item.qty}.0</td>
+                    <td class="p-2 relative group">
+                        <div class="truncate w-32 md:w-48 lg:w-48">${item.name}</div>
+                        <div class="text-[9px] text-outline">${item.sku}</div>
+                    </td>
+                    <td class="p-2 text-right">${item.price.toFixed(2)}</td>
+                    <td class="p-2 text-right font-bold">${sub.toFixed(2)}</td>
+                    <td class="p-1 text-right">
+                        <button onclick="removeFromCart('${item.id}')" class="p-1 hover:bg-error hover:text-white transition-colors border border-transparent active:border-outline">
+                            <span class="material-symbols-outlined text-sm block text-red-600">delete</span>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('subtotalLabel').innerText = total.toFixed(2);
+            document.getElementById('totalLabel').innerText = total.toFixed(2);
+            document.getElementById('itemCount').innerText = itemsCount.toString().padStart(2, '0');
+            
+            // Auto suggest cash amount if it's currently 0 or smaller than total
+            const cashInput = document.getElementById('cashInput');
+            if (parseFloat(cashInput.value) < total || cashInput.value == "0.00") {
+                cashInput.value = total.toFixed(2);
+            }
+            
+            updateChange();
+        }
+
+        async function checkout() {
+            if (cart.length === 0) return;
+            
+            const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+            if(cash < total) {
+                alert("Insufficient Cash Received!");
+                return;
+            }
+
+            const change = cash - total;
+
+            const payload = {
+                TotalAmount: total,
+                CashReceived: cash,
+                ChangeDue: change,
+                Items: cart.map(i => ({
+                    ProductId: i.id,
+                    Quantity: i.qty,
+                    UnitPrice: i.price
+                }))
+            };
+
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/Home/Checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('orderId').innerText = "#" + result.transactionId.substring(0, 8).toUpperCase();
+                    alert("Checkout Successful! Transaction ID: " + result.transactionId);
+                    voidTicket();
+                    // Keep order ID visible for a few seconds
+                    setTimeout(() => { document.getElementById('orderId').innerText = "#NEW"; }, 3000);
+                } else {
+                    alert("Checkout failed. Server responded with an error.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Network error during checkout.");
+            } finally {
+                overlay.classList.add('hidden');
+            }
+        }
+    </script>
+}

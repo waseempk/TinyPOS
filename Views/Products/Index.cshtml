@@ -1,0 +1,75 @@
+@model IEnumerable<TinyPOSApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Product Management";
+}
+
+<div class="h-full flex flex-col p-6 lg:p-8 overflow-hidden">
+    <!-- Header Section -->
+    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-outline-variant pb-6 shrink-0">
+        <div>
+            <h1 class="font-label text-3xl font-bold text-on-background tracking-tight">PRODUCTS</h1>
+        </div>
+        <div class="flex gap-2">
+            <a href="/Products/Create" class="px-6 py-2 bg-slate-900 text-white font-label text-sm hover:bg-primary duration-75 block text-center no-underline">NEW_PRODUCT</a>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="flex-1 overflow-auto bg-white border border-slate-200 p-2">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 border-b-2 border-slate-900 text-slate-500 font-mono text-[10px] uppercase tracking-wider">
+                    <th class="p-3 w-16">Media</th>
+                    <th class="p-3 w-32">SKU</th>
+                    <th class="p-3">Product Name</th>
+                    <th class="p-3 text-right">Cost</th>
+                    <th class="p-3 text-right w-32">Sale Price</th>
+                    <th class="p-3 text-center">Discount</th>
+                    <th class="p-3 text-center w-24">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="font-mono text-sm">
+                @foreach (var item in Model)
+                {
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-2">
+                            <div class="w-10 h-10 bg-slate-100 border border-slate-200 overflow-hidden">
+                                @if(!string.IsNullOrEmpty(item.ImageUrl)) {
+                                    <img src="@item.ImageUrl" class="w-full h-full object-cover grayscale" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\'material-symbols-outlined text-slate-300 mt-2 ml-2\'>image_not_supported</span>';" />
+                                } else {
+                                    <span class="material-symbols-outlined text-slate-300 ml-2 mt-2">image</span>
+                                }
+                            </div>
+                        </td>
+                        <td class="p-3 text-slate-500 text-[11px]">@item.Sku</td>
+                        <td class="p-3 font-sans font-bold text-slate-900 uppercase">@item.Name</td>
+                        <td class="p-3 text-right text-slate-400">$@item.CostPrice?.ToString("0.00")</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">$@item.SalePrice.ToString("0.00")</td>
+                        <td class="p-3 text-center text-xs">
+                            @if(item.ApplyBulkDiscount == true) {
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 text-[9px] uppercase tracking-widest border border-blue-200">ACTIVE</span>
+                            } else {
+                                <span class="text-slate-300">-</span>
+                            }
+                        </td>
+                        <td class="p-3 text-center">
+                            <a href="/Products/Edit/@item.Id" class="inline-flex w-8 h-8 items-center justify-center bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-500 transition-colors border border-slate-200">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </a>
+                        </td>
+                    </tr>
+                }
+
+                @if(!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="p-12 text-center text-slate-400 font-mono text-xs uppercase tracking-widest">
+                            No inventory items found. Click NEW_PRODUCT to begin.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,179 @@
+@model TinyPOSApp.Models.ProfileUpdateViewModel
+
+@{
+    ViewData["Title"] = "User Profile Update";
+}
+
+<div class="h-full overflow-y-auto w-full">
+    <div class="p-8 max-w-6xl mx-auto">
+        <form asp-action="Profile" method="post" enctype="multipart/form-data" class="grid grid-cols-12 gap-8 items-start h-full">
+            
+            <!-- Profile Header Card -->
+            <div class="col-span-12 lg:col-span-4 space-y-6">
+                <div class="bg-surface border border-outline-variant p-8 flex flex-col items-center">
+                    <div class="relative group">
+                        <div class="w-[120px] h-[120px] bg-surface-container-highest border border-outline flex items-center justify-center relative overflow-hidden">
+                            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                            {
+                                <img src="@Model.ImageUrl" id="imagePreview" alt="Profile" class="w-full h-full object-cover" />
+                                <span id="placeholderIcon" class="material-symbols-outlined text-[80px] text-slate-400 hidden">person</span>
+                            }
+                            else
+                            {
+                                <img src="#" id="imagePreview" alt="Profile" class="w-full h-full object-cover hidden" />
+                                <span id="placeholderIcon" class="material-symbols-outlined text-[80px] text-slate-400">person</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-2 w-full max-w-[200px]">
+                        <label class="block px-4 py-2 bg-slate-900 border border-outline text-[11px] font-bold uppercase tracking-widest text-center text-white cursor-pointer hover:bg-slate-800 transition-colors">
+                            Upload Image
+                            <input asp-for="ProfileImage" type="file" class="hidden" accept="image/*" onchange="previewImage(this);" />
+                        </label>
+                        <label class="block px-4 py-2 border border-outline text-[11px] font-bold uppercase tracking-widest text-center text-slate-600 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                            Remove Image
+                            <input asp-for="RemoveImage" type="checkbox" class="hidden" value="true" onchange="removeProfileImage();" />
+                        </label>
+                    </div>
+                    <div class="mt-6 text-center">
+                    <h2 class="font-mono font-bold text-xl text-on-surface uppercase tracking-tight">@Model.FirstName @Model.LastName</h2>
+                    <p class="text-xs font-mono text-on-surface-variant mt-1 uppercase">@Model.Email</p>
+                    <div class="mt-4 px-3 py-1 bg-surface-container-highest inline-block">
+                        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container">Role: @User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-surface border border-outline-variant p-6">
+                <h3 class="text-xs font-bold font-['IBM_Plex_Sans'] uppercase tracking-[0.15em] mb-4 border-b border-outline-variant pb-2 text-on-surface-variant">System Statistics</h3>
+                <div class="space-y-3 font-mono text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-on-surface-variant">SECURITY KEY</span>
+                        <span class="text-emerald-600">VALIDATED</span>
+                    </div>
+                </div>
+            </div>
+            
+            @if (ViewData["SuccessMessage"] != null)
+            {
+                <div class="bg-emerald-100 border border-emerald-400 text-emerald-800 p-4 font-mono text-sm">
+                    @ViewData["SuccessMessage"]
+                </div>
+            }
+        </div>
+
+        <!-- Profile Edit Form -->
+        <div class="col-span-12 lg:col-span-8 space-y-8 pb-12">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div asp-validation-summary="All" class="text-error bg-red-50 p-4 border border-red-200 font-mono text-xs"></div>
+            }
+                
+                <!-- General Information -->
+                <div class="bg-surface border border-outline-variant mb-8">
+                    <div class="bg-surface-container border-b border-outline-variant px-6 py-3">
+                        <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant">General Information</h3>
+                    </div>
+                    <div class="p-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">First Name</label>
+                                <input asp-for="FirstName" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm uppercase bg-surface-container-low transition-colors" type="text" />
+                                <span asp-validation-for="FirstName" class="text-error text-xs font-mono block mt-1"></span>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">Last Name</label>
+                                <input asp-for="LastName" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm uppercase bg-surface-container-low transition-colors" type="text" />
+                                <span asp-validation-for="LastName" class="text-error text-xs font-mono block mt-1"></span>
+                            </div>
+                            <div class="space-y-1 col-span-full">
+                                <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">Email Address</label>
+                                <input asp-for="Email" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm lowercase bg-slate-200 text-slate-500 cursor-not-allowed transition-colors" readonly type="email" />
+                                <p class="text-[9px] text-slate-400 mt-1 uppercase italic">Read-only: Contact admin to change email mapping.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security & Authentication -->
+                <div class="bg-surface border border-outline-variant mb-8">
+                    <div class="bg-surface-container border-b border-outline-variant px-6 py-3">
+                        <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant">Security &amp; Authentication</h3>
+                    </div>
+                    <div class="p-8">
+                        <div class="space-y-6">
+                            <div class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">Current PIN</label>
+                                <div class="relative">
+                                    <input asp-for="CurrentPin" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm bg-surface-container-low transition-colors" placeholder="REQUIRED FOR CHANGES" type="password" />
+                                    <span asp-validation-for="CurrentPin" class="text-error text-xs font-mono block mt-1"></span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">New PIN</label>
+                                    <input asp-for="NewPin" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm bg-surface-container-low transition-colors" placeholder="MIN 4 DIGITS" type="password" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold uppercase text-on-surface-variant tracking-wider">Confirm New PIN</label>
+                                    <input asp-for="ConfirmNewPin" class="w-full border border-outline-variant focus:border-secondary focus:ring-0 p-3 font-mono text-sm bg-surface-container-low transition-colors" placeholder="RE-ENTER NEW" type="password" />
+                                </div>
+                            </div>
+                            <div class="bg-surface-container-high p-4 flex items-start gap-4">
+                                <span class="material-symbols-outlined text-slate-600" data-icon="info">info</span>
+                                <div>
+                                    <h4 class="text-[10px] font-bold uppercase mb-1">PIN Requirements</h4>
+                                    <ul class="text-[9px] font-mono uppercase text-on-surface-variant space-y-1">
+                                        <li>• Minimum 4 digits long</li>
+                                        <li>• Will automatically logout after successful change</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Footer -->
+                <div class="flex justify-end gap-4 pt-4">
+                    <a href="/Account/Profile" class="px-8 py-3 border border-outline text-[11px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors inline-block text-center text-slate-800">
+                        Discard Changes
+                    </a>
+                    <button type="submit" class="px-10 py-3 bg-slate-900 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-black transition-colors active:scale-95 duration-75">
+                        Update Profile
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var preview = document.getElementById('imagePreview');
+                    var icon = document.getElementById('placeholderIcon');
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    icon.classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+                document.querySelector('input[name="RemoveImage"]').checked = false;
+            }
+        }
+        function removeProfileImage() {
+            var input = document.querySelector('input[name="RemoveImage"]');
+            if(input.checked) {
+                var preview = document.getElementById('imagePreview');
+                var icon = document.getElementById('placeholderIcon');
+                preview.src = '#';
+                preview.classList.add('hidden');
+                icon.classList.remove('hidden');
+                document.querySelector('input[name="ProfileImage"]').value = '';
+            }
+        }
+    </script>
+}

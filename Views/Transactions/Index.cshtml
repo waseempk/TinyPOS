@@ -1,0 +1,161 @@
+@model TinyPOSApp.Models.TransactionsViewModel
+@{
+    ViewData["Title"] = "Transaction Log";
+}
+
+<!-- Main Content Canvas (Since _Layout has sidebar padding, we just build the split pane here) -->
+<div class="h-[calc(100vh-3rem)] overflow-hidden flex bg-background">
+    
+    <!-- Master View (30%) -->
+    <section class="w-[30%] h-full flex flex-col border-r border-outline-variant bg-surface">
+        <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0 mt-8">
+            <h2 class="font-headline font-bold text-sm uppercase tracking-wider text-on-surface">Recent Transactions</h2>
+            <span class="font-mono text-[10px] bg-slate-900 text-white px-2 py-0.5">@Model.History.Count ACTIVE</span>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto scrollbar-hide">
+            @if(Model.History.Any())
+            {
+                foreach(var txn in Model.History)
+                {
+                    bool isSelected = Model.SelectedTransaction?.Id == txn.Id;
+                    
+                    <a href="/Transactions?id=@txn.Id" class="block @(isSelected ? "bg-surface-container-highest border-l-4 border-emerald-600" : "bg-surface border-b border-outline-variant hover:bg-surface-container-low") p-4 cursor-pointer no-underline text-inherit">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-mono text-xs font-bold text-on-surface">@txn.Id.ToString().Substring(0, 8).ToUpper()</span>
+                            <span class="font-mono text-[10px] text-on-surface-variant">@(txn.CreatedAt?.ToString("HH:mm:ss") ?? "--:--")</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase text-on-surface-variant">Register 01</span>
+                                <span class="text-[10px] uppercase text-on-surface-variant">User: @txn.CashierName</span>
+                            </div>
+                            <span class="font-mono font-bold text-sm @(txn.Status == "REFUNDED" ? "text-error" : "text-on-surface")">
+                                @(txn.Status == "REFUNDED" ? "-" : "")@txn.TotalAmount.ToString("C")
+                            </span>
+                        </div>
+                    </a>
+                }
+            }
+            else
+            {
+                <div class="p-8 text-center">
+                    <span class="material-symbols-outlined text-slate-300 text-4xl mb-2">receipt</span>
+                    <p class="font-mono text-xs text-slate-400">NO TRANSACTIONS</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Detail View (70%) -->
+    <section class="flex-1 h-full bg-surface-dim flex items-center justify-center relative">
+        @if (Model.SelectedTransaction != null)
+        {
+            <!-- Detail Header Actions -->
+            <div class="absolute top-0 right-0 p-4 flex gap-2">
+                <button class="bg-primary text-white border-0 px-4 py-2 text-xs font-label uppercase flex items-center gap-2 hover:bg-slate-800 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">print</span>
+                    Reprint
+                </button>
+                <button class="bg-white border border-outline text-on-surface px-4 py-2 text-xs font-label uppercase flex items-center gap-2 hover:bg-slate-100 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">mail</span>
+                    Email
+                </button>
+            </div>
+
+            <!-- Receipt Replica -->
+            <div class="w-full max-w-md bg-white p-10 shadow-xl border-t-4 border-slate-900 mx-auto transform -rotate-1 mt-8">
+                <div class="flex flex-col items-center mb-8">
+                    <span class="font-headline font-extrabold text-2xl tracking-tighter text-slate-900">TinyPOS</span>
+                    <span class="font-mono text-[10px] text-slate-500 mt-1 uppercase">Industrial Logistics Hub #01</span>
+                    <span class="font-mono text-[10px] text-slate-500 uppercase">244 Industrial Way, Unit B</span>
+                </div>
+                
+                <div class="border-y border-dashed border-slate-300 py-3 mb-6">
+                    <div class="flex justify-between font-mono text-[11px] text-slate-600">
+                        <span>TXN ID: @Model.SelectedTransaction.Id.ToString().ToUpper()</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-[11px] text-slate-600 mt-1">
+                        <span>DATE: @(Model.SelectedTransaction.CreatedAt?.ToString("yyyy-MM-dd") ?? "N/A")</span>
+                        <span>TIME: @(Model.SelectedTransaction.CreatedAt?.ToString("HH:mm:ss") ?? "N/A")</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-[11px] text-slate-600 mt-1">
+                        <span>CASHIER: @Model.SelectedTransaction.CashierName?.ToUpper()</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 mb-8">
+                    @foreach(var item in Model.SelectedTransaction.Items)
+                    {
+                        <div class="flex justify-between items-start font-mono text-xs">
+                            <div class="flex flex-col max-w-[60%]">
+                                <span class="font-bold">@item.ProductName.ToUpper()</span>
+                                <span class="text-[10px] text-slate-500">SKU: @item.Sku</span>
+                            </div>
+                            <div class="flex flex-col items-end whitespace-nowrap">
+                                <span>@item.Quantity.ToString("0.00") x @item.UnitPrice.ToString("C")</span>
+                                <span class="font-bold">@item.Subtotal.ToString("C")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="border-t-2 border-slate-900 pt-4 space-y-1">
+                    <div class="flex justify-between font-mono text-sm">
+                        <span>SUBTOTAL</span>
+                        <span>@Model.SelectedTransaction.TotalAmount.ToString("C")</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-sm text-slate-500">
+                        <span>TAX (0%)</span>
+                        <span>$0.00</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-lg font-bold pt-2">
+                        <span>TOTAL</span>
+                        <span>@Model.SelectedTransaction.TotalAmount.ToString("C")</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 border-t border-dashed border-slate-300 pt-4">
+                    <div class="flex justify-between font-mono text-[10px] text-slate-600">
+                        <span>PAYMENT TYPE: @(Model.SelectedTransaction.PaymentMethod?.ToUpper() ?? "UNKNOWN")</span>
+                    </div>
+                    @if(Model.SelectedTransaction.PaymentMethod == "CASH" && Model.SelectedTransaction.CashReceived.HasValue)
+                    {
+                        <div class="flex justify-between font-mono text-[10px] text-slate-600 mt-1">
+                            <span>TENDERED: @Model.SelectedTransaction.CashReceived.Value.ToString("C")</span>
+                        </div>
+                        <div class="flex justify-between font-mono text-[10px] text-slate-600 mt-1 uppercase font-bold">
+                            <span>CHANGE: @(Model.SelectedTransaction.ChangeDue?.ToString("C") ?? "$0.00")</span>
+                        </div>
+                    }
+                    else if (Model.SelectedTransaction.PaymentMethod == "CARD")
+                    {
+                        <div class="flex justify-between font-mono text-[10px] text-slate-600 mt-1">
+                            <span>AUTH CODE: @Guid.NewGuid().ToString().Substring(0, 8).ToUpper()</span>
+                        </div>
+                        <div class="flex justify-between font-mono text-[10px] text-slate-600 mt-1 uppercase">
+                            <span>Card: **** **** **** @(new Random().Next(1000, 9999))</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="mt-10 flex flex-col items-center relative">
+                    <div class="w-full h-12 bg-slate-100 flex items-center justify-center font-mono text-xs text-slate-400 overflow-hidden px-2">
+                        <!-- Pseudo Barcode Using Text Lines -->
+                        ||||| ||| || |||| ||| ||||| || ||| |||||
+                    </div>
+                    <span class="font-mono text-[9px] mt-2 text-slate-400">TXN_@Model.SelectedTransaction.Id.ToString().Substring(0,8).ToUpper()_HUB01</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Empty state -->
+            <div class="text-center opacity-50 mt-8">
+                <span class="material-symbols-outlined text-slate-600 text-6xl mb-4">receipt_long</span>
+                <h3 class="font-headline font-bold text-slate-800 text-xl tracking-tight">Select Transaction</h3>
+                <p class="font-mono text-xs text-slate-500 mt-2 max-w-[200px] mx-auto">Choose a transaction from the master list to view receipt details.</p>
+            </div>
+        }
+    </section>
+</div>
