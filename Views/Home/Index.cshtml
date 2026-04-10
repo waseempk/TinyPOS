@@ -271,5 +271,21 @@
                 overlay.classList.add('hidden');
             }
         }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F4') {
+                event.preventDefault();
+                voidTicket();
+            } else if (event.key === 'F6') {
+                event.preventDefault();
+                // Hold ticket logic goes here in the future
+            } else if (event.key === 'F9') {
+                event.preventDefault();
+                checkout();
+            } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+                event.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
     </script>
 }

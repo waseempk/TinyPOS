@@ -1,3 +1,17 @@
+@using System.Security.Claims
+@inject TinyPOSApp.Data.TinyPOSContext dbContext
+@{
+    string userImageUrl = null;
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(userIdStr, out var uId))
+        {
+            var p = dbContext.Profiles.Find(uId);
+            userImageUrl = p?.ImageUrl;
+        }
+    }
+}
 <!DOCTYPE html>
 <html class="light" lang="en">
 <head>
@@ -73,8 +87,15 @@
     <!-- SideNavBar -->
     <aside class="bg-slate-50 fixed left-0 top-12 h-[calc(100vh-48px)] w-20 border-r border-slate-200 flex flex-col items-center py-4 z-40 transition-colors duration-75">
         <a href="/Account/Profile" class="flex flex-col items-center gap-1 mb-8 hover:opacity-80 transition-opacity cursor-pointer text-decoration-none">
-            <div class="w-10 h-10 bg-slate-200 flex items-center justify-center border border-slate-300">
-                <span class="material-symbols-outlined text-slate-600">person</span>
+            <div class="w-10 h-10 bg-slate-200 flex items-center justify-center border border-slate-300 overflow-hidden">
+                @if (!string.IsNullOrEmpty(userImageUrl))
+                {
+                    <img src="@userImageUrl" alt="Profile" class="w-full h-full object-cover" />
+                }
+                else
+                {
+                    <span class="material-symbols-outlined text-slate-600">person</span>
+                }
             </div>
             <div class="text-center">
                 <span class="font-['IBM_Plex_Sans'] font-bold uppercase tracking-wider text-[9px] text-slate-900 block">@User.Identity?.Name</span>
